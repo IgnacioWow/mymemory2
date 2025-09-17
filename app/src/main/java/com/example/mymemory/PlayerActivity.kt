@@ -4,7 +4,6 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.widget.TextView
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -18,6 +17,7 @@ class PlayerActivity : AppCompatActivity(), CardAdapter.CardClick {
     private lateinit var adapter: CardAdapter
     private lateinit var tvInfo: TextView
     private lateinit var rv: RecyclerView
+    private lateinit var playerName: String
 
     private var moves = 0
     private var seconds = 0
@@ -25,23 +25,45 @@ class PlayerActivity : AppCompatActivity(), CardAdapter.CardClick {
     private var startAt = 0L
     private var timer: CountDownTimer? = null
 
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_player)
-
+        playerName = intent.getStringExtra("playerName") ?: "Jugador"
         tvInfo = findViewById(R.id.tvInfo)
         rv = findViewById(R.id.rv)
 
-        game = MemoryGame(size = 16)
-        adapter = CardAdapter(game.cards, this)   // tu CardAdapter está en este package
+        // Sonidos
+        Sfx.init(this)
+        val pairSounds = mapOf(
+            R.drawable.knight to R.raw.knight_contact,
+            R.drawable.glukhar to R.raw.glukhar_perimeter,
+            R.drawable.sanitar to R.raw.sanitar_contact,
+            R.drawable.kaban to R.raw.kaban_scream,
+            R.drawable.rashala to R.raw.rashala_contact,
+            R.drawable.tagilla to R.raw.tagilla_tagilla,
+            R.drawable.killa to R.raw.killa_blyat,
+            R.drawable.sturman to R.raw.sturman_scream
+        )
+        Sfx.loadPairSounds(this, pairSounds)
+        // 1) Crear juego
+        game = MemoryGame(size = 16) // 8 pares -> 4x4
+        // 2) RecyclerView
+        adapter = CardAdapter(game.cards, this)
         rv.layoutManager = GridLayoutManager(this, 4)
         rv.adapter = adapter
 
+        // 3) Estado y timer
         moves = 0
         seconds = 0
         startAt = System.currentTimeMillis()
         startTimer()
         renderInfo()
+
+        // 4) Revelar 1s y sonido de inicio
+        introReveal()
+        rv.postDelayed({ Sfx.start() }, 150)
     }
 
     override fun onCardClicked(position: Int) {
@@ -52,12 +74,15 @@ class PlayerActivity : AppCompatActivity(), CardAdapter.CardClick {
             }
             is FlipResult.Match -> {
                 moves++
+                val front = game.cards[position].frontRes
+                Sfx.match(front)
                 adapter.notifyDataSetChanged()
                 renderInfo()
                 if (game.cards.all { it.isMatched }) onWin()
             }
             is FlipResult.Mismatch -> {
                 moves++
+                Sfx.mismatch()
                 adapter.notifyItemChanged(r.i1)
                 adapter.notifyItemChanged(r.i2)
                 renderInfo()
@@ -70,6 +95,17 @@ class PlayerActivity : AppCompatActivity(), CardAdapter.CardClick {
                 }, 600)
             }
         }
+    }
+
+    private fun introReveal() {
+        lock = true
+        game.cards.forEach { it.isFaceUp = true }
+        adapter.notifyDataSetChanged()
+        rv.postDelayed({
+            game.cards.forEach { it.isFaceUp = false }
+            adapter.notifyDataSetChanged()
+            lock = false
+        }, 1000)
     }
 
     private fun startTimer() {
@@ -87,13 +123,16 @@ class PlayerActivity : AppCompatActivity(), CardAdapter.CardClick {
     private fun onWin() {
         timer?.cancel()
         val elapsed = System.currentTimeMillis() - startAt
-        val name = intent.getStringExtra("playerName") ?: "Jugador"
         val ts = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
             .format(java.util.Date())
-        DbHelper(this).insertScore(name, moves, elapsed, ts)
+        DbHelper(this).insertScore(playerName, moves, elapsed, ts)
+        Sfx.win()
         startActivity(Intent(this, ScoresActivity::class.java))
         finish()
     }
 
-    override fun onDestroy() { super.onDestroy(); timer?.cancel() }
+    override fun onDestroy() {
+        super.onDestroy()
+        timer?.cancel()
+    }
 }

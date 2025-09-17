@@ -1,7 +1,8 @@
 package com.example.mymemory
 
-import android.database.Cursor
 import android.os.Bundle
+import android.view.View
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -15,40 +16,40 @@ class ScoresActivity : AppCompatActivity() {
         setContentView(R.layout.activity_scores)
 
         val rv = findViewById<RecyclerView>(R.id.rvScores)
+        val tvEmpty = findViewById<TextView>(R.id.tvEmpty)
         rv.layoutManager = LinearLayoutManager(this)
 
         val db = DbHelper(this).readableDatabase
-        val c = db.rawQuery(
-            // Toma elapsed_ms si existe, si no usa millis. Igual con ts/createdAt.
+        val data = db.rawQuery(
             """
-  SELECT name,
-         moves,
-         COALESCE(elapsed_ms, millis)  AS elapsed_val,
-         COALESCE(ts, createdAt)       AS ts_val
-  FROM scores
-  ORDER BY elapsed_val ASC, moves ASC
-  LIMIT 100
-  """.trimIndent(), null
-        )
-
-        val data = buildList {
-            val idxName = c.getColumnIndexOrThrow("name")
-            val idxMoves = c.getColumnIndexOrThrow("moves")
-            val idxElapsed = c.getColumnIndexOrThrow("elapsed_val")
-            val idxTs = c.getColumnIndexOrThrow("ts_val")
+      SELECT id,
+             name          AS name_val,
+             moves         AS moves_val,
+             elapsed_ms    AS elapsed_val,
+             ts            AS ts_val
+      FROM scores
+      ORDER BY id DESC
+      LIMIT 100
+      """.trimIndent(), null
+        ).use { c ->
+            val out = ArrayList<Score>()
+            val iN = c.getColumnIndexOrThrow("name_val")
+            val iM = c.getColumnIndexOrThrow("moves_val")
+            val iE = c.getColumnIndexOrThrow("elapsed_val")
+            val iT = c.getColumnIndexOrThrow("ts_val")
             while (c.moveToNext()) {
-                add(
-                    com.example.mymemory.model.Score(
-                        name = c.getString(idxName),
-                        moves = c.getInt(idxMoves),
-                        millis = c.getLong(idxElapsed),
-                        createdAt = c.getString(idxTs)
-                    )
+                out += Score(
+                    name = c.getString(iN),
+                    moves = c.getInt(iM),
+                    millis = c.getLong(iE),
+                    createdAt = c.getString(iT)
                 )
             }
+            out
         }
-        c.close(); db.close()
+        db.close()
 
+        if (data.isEmpty()) tvEmpty.visibility = View.VISIBLE
         rv.adapter = ScoreAdapter(data)
     }
 }

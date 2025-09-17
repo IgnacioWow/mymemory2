@@ -5,7 +5,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
-class DbHelper(ctx: Context) : SQLiteOpenHelper(ctx, "memory.db", null, 2) {
+class DbHelper(ctx: Context) : SQLiteOpenHelper(ctx, "memory.db", null, 4) {
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL("""
@@ -20,30 +20,16 @@ class DbHelper(ctx: Context) : SQLiteOpenHelper(ctx, "memory.db", null, 2) {
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldV: Int, newV: Int) {
-        // Migraciones tolerantes: intenta añadir columnas si faltan
-        if (oldV < 2) {
-            try { db.execSQL("ALTER TABLE scores ADD COLUMN elapsed_ms INTEGER NOT NULL DEFAULT 0") } catch (_: Exception) {}
-            try { db.execSQL("ALTER TABLE scores ADD COLUMN ts TEXT NOT NULL DEFAULT ''") } catch (_: Exception) {}
-        }
+        // DEV: esquema estable. Si hay tablas antiguas, las reemplazamos.
+        db.execSQL("DROP TABLE IF EXISTS scores")
+        onCreate(db)
     }
 
-    override fun onOpen(db: SQLiteDatabase) {
-        super.onOpen(db)
-        // Garantiza tabla y columnas, idempotente
-        onCreate(db)
-        try { db.execSQL("ALTER TABLE scores ADD COLUMN elapsed_ms INTEGER NOT NULL DEFAULT 0") } catch (_: Exception) {}
-        try { db.execSQL("ALTER TABLE scores ADD COLUMN ts TEXT NOT NULL DEFAULT ''") } catch (_: Exception) {}
-    }
+    override fun onOpen(db: SQLiteDatabase) { super.onOpen(db); onCreate(db) }
 
     fun insertScore(name: String, moves: Int, elapsedMs: Long, ts: String) {
         val cv = ContentValues().apply {
-            put("name", name)
-            put("moves", moves)
-            put("elapsed_ms", elapsedMs)
-            put("ts", ts)
-            // Compat: si tu DB antigua tenía estas columnas, también las rellenamos.
-            put("millis", elapsedMs)      // ignorado si no existe
-            put("createdAt", ts)          // ignorado si no existe
+            put("name", name); put("moves", moves); put("elapsed_ms", elapsedMs); put("ts", ts)
         }
         writableDatabase.insert("scores", null, cv)
     }

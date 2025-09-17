@@ -5,6 +5,6 @@
         android:layout_width="match_parent"
         android:layout_height="180dp"
         android:scaleType="centerCrop"
-        android:src="@drawable/ic_card_back"/>
+        android:src="@drawable/card_back"/>
 </FrameLayout>
 

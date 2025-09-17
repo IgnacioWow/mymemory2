@@ -30,7 +30,9 @@ class CardAdapter(
 
     override fun onBindViewHolder(holder: VH, position: Int) {
         val c = cards[position]
-        holder.img.setImageResource(if (c.isFaceUp || c.isMatched) c.frontRes else R.drawable.ic_card_back)
+        holder.img.setImageResource(
+            if (c.isFaceUp || c.isMatched) c.frontRes else R.drawable.card_back
+        )
         holder.itemView.alpha = if (c.isMatched) 0.4f else 1f
     }
 
