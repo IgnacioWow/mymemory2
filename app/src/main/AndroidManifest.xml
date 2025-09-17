@@ -9,7 +9,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Mymemory">
 
-        <activity android:name=".ScoresActivity" android:exported="false"/>
+
+        <activity
+            android:name=".ScoresActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity"/>
         <activity android:name=".PlayerActivity" android:exported="false"/>
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>

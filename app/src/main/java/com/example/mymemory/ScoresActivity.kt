@@ -9,16 +9,18 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.mymemory.data.DbHelper
 import com.example.mymemory.model.Score
 import com.example.mymemory.ui.ScoreAdapter
-
+import android.widget.Button
+import android.view.MenuItem
 class ScoresActivity : AppCompatActivity() {
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
         setContentView(R.layout.activity_scores)
-
+        val btnBack = findViewById<Button>(R.id.btnBack)
+        btnBack.setOnClickListener { finish() }
         val rv = findViewById<RecyclerView>(R.id.rvScores)
         val tvEmpty = findViewById<TextView>(R.id.tvEmpty)
         rv.layoutManager = LinearLayoutManager(this)
-
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
         val db = DbHelper(this).readableDatabase
         val data = db.rawQuery(
             """
@@ -52,4 +54,12 @@ class ScoresActivity : AppCompatActivity() {
         if (data.isEmpty()) tvEmpty.visibility = View.VISIBLE
         rv.adapter = ScoreAdapter(data)
     }
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == android.R.id.home) {
+            finish()
+            return true
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
 }
